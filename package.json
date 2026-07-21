@@ -1,0 +1,11 @@
+{
+  "name": "mughis-ai",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "cd apps/web && npx next dev",
+    "build": "cd apps/web && npx next build",
+    "start": "cd apps/web && npx next start",
+    "lint": "cd apps/web && npx next lint"
+  }
+}
