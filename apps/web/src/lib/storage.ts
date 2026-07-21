@@ -6,6 +6,9 @@ type Item = {
   data?: string;
   model?: string;
   provider?: string;
+  referenceImage?: string;
+  referenceVideo?: string;
+  referenceStrength?: number;
   created_at: string;
 };
 
