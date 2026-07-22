@@ -1,6 +1,7 @@
 import type { AIProvider } from "./providers";
 import { combineSignals } from "./providers";
 import { getConfiguredProvider, getApiKey } from "./index";
+import { grokImage } from "./providers/xai";
 
 async function pollinations(prompt: string, w: number, h: number, signal?: AbortSignal) {
   const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt.slice(0, 500))}?width=${w}&height=${h}&nologo=true&nojson=true`;
@@ -41,10 +42,14 @@ async function huggingface(prompt: string, model: string, w: number, h: number, 
 
 export async function generateImage(params: {
   prompt: string; model?: string; width?: number; height?: number; provider?: AIProvider; signal?: AbortSignal;
+  referenceImages?: { data: Blob; weight?: number }[];
+  characterRef?: string;
+  strength?: number;
 }): Promise<{ data?: Blob; error?: string; imageUrl?: string }> {
   const provider = params.provider || getConfiguredProvider() as AIProvider;
   const w = params.width || 1024;
   const h = params.height || 1024;
+  if (provider === "xai") return grokImage({ prompt: params.prompt, width: w, height: h, referenceImages: params.referenceImages, characterRef: params.characterRef, strength: params.strength, signal: params.signal });
   if (provider === "huggingface") {
     return huggingface(params.prompt, params.model || "black-forest-labs/FLUX.1-dev", w, h, params.signal);
   }
@@ -52,6 +57,7 @@ export async function generateImage(params: {
 }
 
 export const IMAGE_MODELS: Record<string, { value: string; label: string }[]> = {
+  xai: [{ value: "grok-image", label: "Grok Image" }],
   huggingface: [
     { value: "black-forest-labs/FLUX.1-dev", label: "FLUX.1 Dev (Kualitas)" },
     { value: "black-forest-labs/FLUX.1-schnell", label: "FLUX.1 Schnell (Cepat)" },

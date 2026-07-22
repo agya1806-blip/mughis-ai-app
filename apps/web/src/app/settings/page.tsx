@@ -1,10 +1,10 @@
 "use client";
 import { useState, useRef } from "react";
-import { Key, Download, Upload, Eye, EyeOff, ExternalLink } from "lucide-react";
+import { Key, Download, Upload, Eye, EyeOff, ExternalLink, Activity, CheckCircle, XCircle } from "lucide-react";
 import { Card, CardTitle } from "@/components/card";
 import { Button } from "@/components/button";
 import { Sidebar, MobileNav } from "@/components/nav";
-import { PROVIDERS, getConfiguredProvider, setProvider, getApiKey, setApiKey } from "@/lib/ai";
+import { PROVIDERS, getConfiguredProvider, setProvider, getApiKey, setApiKey, testXaiConnection } from "@/lib/ai";
 import { exportData, importData } from "@/lib/storage";
 import { toast } from "@/lib/toast";
 
@@ -12,14 +12,29 @@ export default function SettingsPage() {
   const [provider, setProv] = useState(getConfiguredProvider);
   const [hfKey, setHfKey] = useState(getApiKey("huggingface"));
   const [geminiKey, setGeminiKey] = useState(getApiKey("gemini"));
+  const [xaiKey, setXaiKey] = useState(getApiKey("xai"));
   const [showKey, setShowKey] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [health, setHealth] = useState<{ ok: boolean; error?: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const save = () => {
     setProvider(provider);
     setApiKey("huggingface", hfKey);
     setApiKey("gemini", geminiKey);
+    setApiKey("xai", xaiKey);
     toast.success("Pengaturan disimpan");
+  };
+
+  const testConn = async () => {
+    if (!xaiKey) { toast.error("Isi xAI API key dulu"); return; }
+    setTesting(true);
+    setHealth(null);
+    const res = await testXaiConnection();
+    setHealth(res);
+    setTesting(false);
+    if (res.ok) toast.success("Koneksi xAI berhasil");
+    else toast.error(res.error || "Gagal");
   };
 
   const handleExport = () => {
@@ -70,7 +85,32 @@ export default function SettingsPage() {
               ))}
             </div>
 
-            {provider !== "pollinations" && (
+            {provider === "xai" && (
+              <div className="space-y-3 p-3 rounded-xl bg-zinc-800/30 border border-zinc-800">
+                <p className="text-sm text-zinc-400">Dapatkan API key di <a href="https://console.x.ai" target="_blank" rel="noopener" className="text-purple-400 inline-flex items-center gap-0.5">xAI Console <ExternalLink className="w-3 h-3" /></a></p>
+                <div className="flex gap-2">
+                  <div className="flex-1 relative">
+                    <input type={showKey ? "text" : "password"} value={xaiKey} onChange={(e) => setXaiKey(e.target.value)}
+                      placeholder="xai-xxxxxxxxxxxx" className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 pr-10" />
+                    <button onClick={() => setShowKey(!showKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400">
+                      {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="secondary" size="sm" onClick={testConn} loading={testing}>
+                    <Activity className="w-3.5 h-3.5" /> Test Connection
+                  </Button>
+                  {health && (health.ok ? (
+                    <span className="flex items-center gap-1 text-xs text-green-400"><CheckCircle className="w-3.5 h-3.5" /> Online</span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-xs text-red-400"><XCircle className="w-3.5 h-3.5" /> {health.error}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {provider === "huggingface" && (
               <div className="space-y-3 p-3 rounded-xl bg-zinc-800/30 border border-zinc-800">
                 <p className="text-sm text-zinc-400">Dapatkan token gratis di <a href="https://huggingface.co/settings/tokens" target="_blank" rel="noopener" className="text-purple-400 inline-flex items-center gap-0.5">Hugging Face <ExternalLink className="w-3 h-3" /></a></p>
                 <div className="flex gap-2">
@@ -82,9 +122,6 @@ export default function SettingsPage() {
                     </button>
                   </div>
                 </div>
-                <p className="text-sm text-zinc-400">Atau gunakan <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" className="text-purple-400 inline-flex items-center gap-0.5">Gemini API Key <ExternalLink className="w-3 h-3" /></a> untuk chat</p>
-                <input type="password" value={geminiKey} onChange={(e) => setGeminiKey(e.target.value)}
-                  placeholder="AIzaSy..." className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100" />
               </div>
             )}
 
@@ -95,6 +132,14 @@ export default function SettingsPage() {
             )}
 
             <Button onClick={save} className="w-full">Simpan Pengaturan</Button>
+          </Card>
+
+          <Card className="space-y-4">
+            <CardTitle>API Keys Lain</CardTitle>
+            <p className="text-sm text-zinc-400"><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" className="text-purple-400 inline-flex items-center gap-0.5">Gemini API Key <ExternalLink className="w-3 h-3" /></a> (cadangan untuk chat)</p>
+            <input type="password" value={geminiKey} onChange={(e) => setGeminiKey(e.target.value)}
+              placeholder="AIzaSy..." className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100" />
+            <Button onClick={save} className="w-full" variant="secondary">Simpan Semua Key</Button>
           </Card>
 
           <Card className="space-y-4">

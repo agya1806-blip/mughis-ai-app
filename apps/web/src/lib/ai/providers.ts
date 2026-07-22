@@ -1,4 +1,4 @@
-export type AIProvider = "pollinations" | "huggingface";
+export type AIProvider = "pollinations" | "huggingface" | "xai";
 
 export function combineSignals(...signals: AbortSignal[]): { signal: AbortSignal; clear(): void } {
   const ctrl = new AbortController();

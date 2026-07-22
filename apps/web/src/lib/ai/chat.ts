@@ -1,5 +1,6 @@
 import type { AIProvider } from "./providers";
 import { getConfiguredProvider, getApiKey } from "./index";
+import { grokChat } from "./providers/xai";
 
 export type ChatMessage = { role: "user" | "assistant"; content: string };
 
@@ -31,9 +32,9 @@ async function gemini(messages: ChatMessage[], signal?: AbortSignal) {
   if (!key) return { error: "API key Gemini belum diatur" };
   const contents = messages.map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] }));
   try {
-    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`, {
+    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify({ contents }),
       signal,
     });
@@ -52,12 +53,14 @@ export async function chat(params: {
   messages: ChatMessage[]; model?: string; provider?: AIProvider; signal?: AbortSignal;
 }): Promise<{ content?: string; error?: string }> {
   const provider = params.provider || getConfiguredProvider() as AIProvider;
-  if (provider === "pollinations") return { error: "Gunakan Gemini atau Hugging Face untuk chat" };
+  if (provider === "xai") return grokChat(params.messages, params.signal);
+  if (provider === "pollinations") return { error: "Gunakan xAI, Gemini, atau Hugging Face untuk chat" };
   if (provider === "huggingface") return huggingface(params.messages, params.model || "microsoft/DialoGPT-medium", params.signal);
   return gemini(params.messages, params.signal);
 }
 
 export const CHAT_MODELS: Record<string, { value: string; label: string }[]> = {
+  xai: [{ value: "grok-4.5", label: "Grok 4.5" }],
   huggingface: [
     { value: "microsoft/DialoGPT-medium", label: "DialoGPT (Ringan)" },
     { value: "microsoft/DialoGPT-large", label: "DialoGPT Large" },
