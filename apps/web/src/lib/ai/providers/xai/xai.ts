@@ -36,12 +36,23 @@ export async function xaiFetch(
 
 export async function testConnection(): Promise<{ ok: boolean; error?: string }> {
   try {
-    const resp = await fetch(`${BASE}/models`, {
-      headers: { Authorization: `Bearer ${getKey()}` },
+    const resp = await fetch(`${BASE}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getKey()}`,
+      },
+      body: JSON.stringify({
+        model: "grok-2",
+        messages: [{ role: "user", content: "test" }],
+        max_tokens: 1,
+      }),
     });
     if (!resp.ok) {
       const text = await resp.text();
-      return { ok: false, error: text || `HTTP ${resp.status}` };
+      let msg: string;
+      try { msg = JSON.parse(text).error?.message || JSON.parse(text).error || `HTTP ${resp.status}`; } catch { msg = text || `HTTP ${resp.status}`; }
+      return { ok: false, error: msg };
     }
     return { ok: true };
   } catch (err: any) {
