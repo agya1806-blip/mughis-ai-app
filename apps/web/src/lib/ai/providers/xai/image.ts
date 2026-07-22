@@ -32,7 +32,7 @@ export async function grokImage(params: {
     messages.push({ role: "user", content });
 
     const resp = await xaiFetch("/chat/completions", {
-      model: "grok-image",
+      model: "grok-2",   // atau grok-beta tergantung model yang tersedia di akun kamu
       messages,
       max_tokens: 2048,
     }, params.signal);
