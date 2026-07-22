@@ -1,8 +1,17 @@
 const BASE = "https://api.x.ai/v1";
 
 export function getKey(): string {
-  if (typeof window === "undefined") return "";
-  return localStorage.getItem("mughis_key_xai") || "";
+  // Ambil dari Vercel Environment Variables (sudah kamu tambahkan)
+  if (typeof process !== "undefined" && process.env?.XAI_API_KEY) {
+    return process.env.XAI_API_KEY;
+  }
+  
+  // Cadangan untuk development
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("mughis_key_xai") || "";
+  }
+  
+  return "";
 }
 
 export async function xaiFetch(
@@ -11,7 +20,8 @@ export async function xaiFetch(
   signal?: AbortSignal,
 ): Promise<Response> {
   const key = getKey();
-  if (!key) throw new Error("xAI API key belum diatur");
+  if (!key) throw new Error("xAI API key belum diatur. Cek Vercel Environment Variables.");
+
   const resp = await fetch(`${BASE}${path}`, {
     method: "POST",
     headers: {
@@ -21,6 +31,7 @@ export async function xaiFetch(
     body: JSON.stringify(body),
     signal,
   });
+
   if (!resp.ok) {
     const text = await resp.text();
     let msg: string;
@@ -36,11 +47,16 @@ export async function xaiFetch(
 
 export async function testConnection(): Promise<{ ok: boolean; error?: string }> {
   try {
+    const key = getKey();
+    if (!key) {
+      return { ok: false, error: "API Key belum terdeteksi di Vercel" };
+    }
+    // test sederhana
     const resp = await fetch(`${BASE}/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${getKey()}`,
+        Authorization: `Bearer ${key}`,
       },
       body: JSON.stringify({
         model: "grok-2",
@@ -48,13 +64,7 @@ export async function testConnection(): Promise<{ ok: boolean; error?: string }>
         max_tokens: 1,
       }),
     });
-    if (!resp.ok) {
-      const text = await resp.text();
-      let msg: string;
-      try { msg = JSON.parse(text).error?.message || JSON.parse(text).error || `HTTP ${resp.status}`; } catch { msg = text || `HTTP ${resp.status}`; }
-      return { ok: false, error: msg };
-    }
-    return { ok: true };
+    return { ok: resp.ok };
   } catch (err: any) {
     return { ok: false, error: err.message };
   }
